@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esports Nexus | Tournament Platform</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Rajdhani', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#0a0a0c',
+                            800: '#121217',
+                            700: '#1c1c24',
+                            600: '#2a2a35'
+                        },
+                        neon: {
+                            purple: '#9d4edd',
+                            blue: '#00f3ff',
+                            green: '#39ff14',
+                            pink: '#ff007f'
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0a0a0c;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6, .nav-brand {
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #121217;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a35;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9d4edd;
+        }
+
+        /* Neon & Glass Effects */
+        .glass-panel {
+            background: rgba(28, 28, 36, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .neon-border-purple {
+            border: 1px solid #9d4edd;
+            box-shadow: 0 0 10px rgba(157, 78, 221, 0.3), inset 0 0 10px rgba(157, 78, 221, 0.1);
+        }
+
+        .neon-border-blue {
+            border: 1px solid #00f3ff;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.1);
+        }
+
+        .neon-text-purple {
+            text-shadow: 0 0 10px rgba(157, 78, 221, 0.7);
+        }
+
+        .neon-text-blue {
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
+        }
+
+        /* Transitions */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out forwards;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #00f3ff;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px #00f3ff;
+        }
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 100%;
+        }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: #1c1c24;
+            border-left: 4px solid #00f3ff;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            animation: slideInRight 0.3s ease forwards, fadeOut 0.3s ease 2.7s forwards;
+        }
+
+        .toast.error {
+            border-left-color: #ff007f;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col relative">
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Ambient Background Effects -->
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-neon-purple opacity-10 blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-neon-blue opacity-10 blur-[120px]"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-dark-700">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex-shrink-0 cursor-pointer" onclick="navigateTo('home')">
+                    <span class="nav-brand text-3xl font-bold tracking-wider text-white flex items-center gap-2">
+                        <i class="ph ph-hexagon-fill text-neon-blue neon-text-blue"></i>
+                        NEXUS
+                    </span>
+                </div>
+
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" onclick="navigateTo('home')" class="nav-link text-gray-300 hover:text-white font-medium active" data-target="home">Home</a>
+                    <a href="#" onclick="navigateTo('tournaments')" class="nav-link text-gray-300 hover:text-white font-medium" data-target="tournaments">Tournaments</a>
+                    <a href="#" onclick="navigateTo('schedule')" class="nav-link text-gray-300 hover:text-white font-medium" data-target="schedule">Schedule</a>
+                    <a href="#" onclick="navigateTo('leaderboard')" class="nav-link text-gray-300 hover:text-white font-medium" data-target="leaderboard">Leaderboard</a>
+                    <a href="#" onclick="navigateTo('prizes')" class="nav-link text-gray-300 hover:text-white font-medium" data-target="prizes">Prizes</a>
+                </nav>
+
+                <div class="hidden md:flex items-center space-x-4" id="nav-auth-section"></div>
+
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="text-gray-300 hover:text-white focus:outline-none p-2">
+                        <i class="ph ph-list text-3xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden glass-panel border-b border-dark-700">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex flex-col">
+                <a href="#" onclick="navigateTo('home')" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-dark-700">Home</a>
+                <a href="#" onclick="navigateTo('tournaments')" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-dark-700">Tournaments</a>
+                <a href="#" onclick="navigateTo('schedule')" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-dark-700">Schedule</a>
+                <a href="#" onclick="navigateTo('leaderboard')" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-dark-700">Leaderboard</a>
+                <a href="#" onclick="navigateTo('prizes')" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-dark-700">Prizes</a>
+                <div id="mobile-auth-section" class="pt-4 pb-2 border-t border-dark-600 mt-2"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow container mx-auto px-4 lg:px-8 py-8 w-full">
+
+        <!-- HOME SECTION -->
+        <section id="view-home" class="view-section active">
+            <div class="relative rounded-2xl overflow-hidden glass-panel neon-border-blue h-[500px] flex items-center justify-center text-center">
+                <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-20"></div>
+                <div class="relative z-10 max-w-3xl px-4">
+                    <h1 class="text-5xl md:text-7xl font-bold mb-6 text-white neon-text-blue">DOMINATE THE ARENA</h1>
+                    <p class="text-xl text-gray-300 mb-8">Join the ultimate esports platform. Compete in daily tournaments, manage your guild, and win massive prize pools.</p>
+                    <button onclick="navigateTo('tournaments')" class="px-8 py-4 bg-neon-purple hover:bg-purple-600 text-white font-bold rounded text-lg transition-all shadow-[0_0_15px_rgba(157,78,221,0.5)] hover:shadow-[0_0_25px_rgba(157,78,221,0.8)]">
+                        FIND TOURNAMENTS
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                <div class="glass-panel p-6 rounded-xl border border-dark-600 hover:border-neon-blue transition-colors text-center">
+                    <i class="ph ph-trophy text-5xl text-neon-blue mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">Pro Tournaments</h3>
+                    <p class="text-gray-400">Compete against the best in high-stakes bracket formats.</p>
+                </div>
+                <div class="glass-panel p-6 rounded-xl border border-dark-600 hover:border-neon-purple transition-colors text-center">
+                    <i class="ph ph-users-three text-5xl text-neon-purple mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">Team Management</h3>
+                    <p class="text-gray-400">Build your ultimate roster and manage guild roles seamlessly.</p>
+                </div>
+                <div class="glass-panel p-6 rounded-xl border border-dark-600 hover:border-neon-green transition-colors text-center">
+                    <i class="ph ph-currency-dollar text-5xl text-neon-green mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">Instant Payouts</h3>
+                    <p class="text-gray-400">Transparent prize pools with automated digital distribution.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AUTH SECTION -->
+        <section id="view-auth" class="view-section">
+            <div class="max-w-md mx-auto mt-12 glass-panel p-8 rounded-2xl border border-dark-600 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neon-blue to-neon-purple"></div>
+
+                <div class="flex justify-center space-x-8 mb-8 border-b border-dark-600 pb-4">
+                    <button id="tab-login" class="text-xl font-bold text-white nav-brand pb-2 border-b-2 border-neon-blue" onclick="switchAuthTab('login')">LOGIN</button>
+                    <button id="tab-signup" class="text-xl font-bold text-gray-500 nav-brand pb-2 border-b-2 border-transparent hover:text-white" onclick="switchAuthTab('signup')">SIGN UP</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="form-login" class="space-y-6" onsubmit="handleAuth(event, 'login')">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Username or Email</label>
+                        <input type="text" required class="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                        <input type="password" required class="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-blue focus:ring-1 focus:ring-neon-blue transition-colors">
+                    </div>
+                    <button type="submit" class="w-full bg-neon-blue hover:bg-cyan-400 text-dark-900 font-bold py-3 rounded-lg transition-colors">ACCESS ACCOUNT</button>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="form-signup" class="space-y-4 hidden" onsubmit="handleAuth(event, 'signup')">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Gamer Tag</label>
+                        <input type="text" id="reg-username" required class="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                        <input type="email" required class="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                        <input type="password" required class="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition-colors">
+                    </div>
+                    <button type="submit" class="w-full bg-neon-purple hover:bg-purple-600 text-white font-bold py-3 rounded-lg transition-colors mt-4">CREATE ACCOUNT</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- TOURNAMENTS SECTION -->
+        <section id="view-tournaments" class="view-section">
+            <div class="flex justify-between items-end mb-8 border-b border-dark-700 pb-4">
+                <div>
+                    <h2 class="text-4xl font-bold text-white mb-2">Active Tournaments</h2>
+                    <p class="text-gray-400">Register your team for upcoming events.</p>
+                </div>
+                <div class="hidden md:flex gap-2">
+                    <select class="bg-dark-700 border border-dark-600 text-white rounded px-3 py-2 outline-none cursor-pointer">
+                        <option>All Games</option>
+                        <option>Valorant</option>
+                        <option>CS:GO</option>
+                        <option>League of Legends</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="tournament-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- SCHEDULE SECTION -->
+        <section id="view-schedule" class="view-section">
+            <h2 class="text-4xl font-bold text-white mb-6">Match Schedule</h2>
+            <div class="glass-panel rounded-xl overflow-hidden border border-dark-600">
+                <div class="divide-y divide-dark-600" id="schedule-list">
+                    <!-- Dynamic Matches -->
+                </div>
+            </div>
+        </section>
+
+        <!-- LEADERBOARD SECTION -->
+        <section id="view-leaderboard" class="view-section">
+            <h2 class="text-4xl font-bold text-white mb-6">Global Rankings</h2>
+            <div class="glass-panel rounded-xl border border-dark-600 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-dark-700 text-gray-400 text-sm uppercase tracking-wider">
+                            <th class="py-4 px-6">Rank</th>
+                            <th class="py-4 px-6">Team</th>
+                            <th class="py-4 px-6">Wins</th>
+                            <th class="py-4 px-6">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-dark-600" id="leaderboard-body">
+                        <!-- Dynamic Leaderboard -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PRIZES SECTION -->
+        <section id="view-prizes" class="view-section">
+            <h2 class="text-4xl font-bold text-white mb-6">Reward Pools</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel p-8 rounded-xl border border-neon-purple text-center">
+                    <i class="ph ph-crown text-6xl text-yellow-400 mb-4 inline-block"></i>
+                    <h3 class="text-3xl font-bold mb-2">Grand Masters</h3>
+                    <p class="text-3xl font-extrabold text-neon-blue mb-4">$50,000</p>
+                    <p class="text-gray-400">Awarded to top 16 qualifying seasonal teams.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-xl border border-dark-600 text-center">
+                    <i class="ph ph-medal text-6xl text-gray-300 mb-4 inline-block"></i>
+                    <h3 class="text-3xl font-bold mb-2">Challenger Tier</h3>
+                    <p class="text-3xl font-extrabold text-neon-purple mb-4">$15,000</p>
+                    <p class="text-gray-400">Weekly tournament prize distribution.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-xl border border-dark-600 text-center">
+                    <i class="ph ph-lightning text-6xl text-neon-green mb-4 inline-block"></i>
+                    <h3 class="text-3xl font-bold mb-2">Daily Skirmish</h3>
+                    <p class="text-3xl font-extrabold text-neon-green mb-4">$2,500</p>
+                    <p class="text-gray-400">Distributed daily for quick match brackets.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TEAM MANAGEMENT SECTION -->
+        <section id="view-team" class="view-section">
+            <div class="max-w-4xl mx-auto">
+                <div class="glass-panel p-8 rounded-2xl border border-dark-600 neon-border-purple relative">
+                    <div class="flex justify-between items-center mb-8 border-b border-dark-600 pb-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-white mb-1" id="team-name-display">My Guild</h2>
+                            <p class="text-neon-purple text-sm font-bold tracking-widest">ROSTER MANAGEMENT</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-gray-400 text-sm">Team Rating</span>
+                            <span class="text-2xl font-bold text-white" id="team-rating-display">1450</span>
+                        </div>
+                    </div>
+
+                    <!-- Add Member -->
+                    <form id="form-add-member" class="flex flex-col sm:flex-row gap-4 mb-8" onsubmit="addTeamMember(event)">
+                        <div class="flex-grow">
+                            <input type="text" id="new-member-name" placeholder="Enter gamer tag to invite..." required
+                                class="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-purple focus:ring-1 focus:ring-neon-purple">
+                        </div>
+                        <select id="new-member-role" class="bg-dark-800 border border-dark-600 rounded-lg px-4 py-3 text-white outline-none w-full sm:w-36">
+                            <option value="Player">Player</option>
+                            <option value="Sub">Substitute</option>
+                            <option value="Coach">Coach</option>
+                        </select>
+                        <button type="submit" class="bg-neon-purple hover:bg-purple-600 text-white px-6 py-3 rounded-lg font-bold transition-colors flex items-center justify-center gap-1">
+                            <i class="ph ph-plus-circle text-xl"></i> ADD
+                        </button>
+                    </form>
+
+                    <!-- Roster List -->
+                    <div class="bg-dark-800 rounded-xl border border-dark-600 overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-dark-700 text-gray-400 text-sm uppercase tracking-wider">
+                                    <th class="py-3 px-6 font-medium">Player</th>
+                                    <th class="py-3 px-6 font-medium">Role</th>
+                                    <th class="py-3 px-6 font-medium">Joined</th>
+                                    <th class="py-3 px-6 font-medium text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="team-roster-body" class="divide-y divide-dark-600">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-panel border-t border-dark-700 py-6 mt-12">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            &copy; 2026 Esports Nexus Platform. All Rights Reserved.
+        </div>
+    </footer>
+
+    <!-- Application Scripting -->
+    <script>
+        // Data State
+        let currentUser = null;
+        let teamRoster = [
+            { name: "ViperX", role: "Captain", joined: "2026-01-15" },
+            { name: "ShadowStrike", role: "Player", joined: "2026-02-01" },
+            { name: "NovaBlast", role: "Sub", joined: "2026-02-10" }
+        ];
+
+        const tournaments = [
+            { id: 1, name: "Valorant Masters Cup", game: "Valorant", prize: "$10,000", slots: "12/16", date: "Nov 15, 2026" },
+            { id: 2, name: "CS:GO Cyber Showdown", game: "CS:GO", prize: "$5,000", slots: "8/16", date: "Nov 20, 2026" },
+            { id: 3, name: "League Legends Arena", game: "League of Legends", prize: "$15,000", slots: "16/16", date: "Nov 28, 2026" }
+        ];
+
+        const schedule = [
+            { time: "18:00 IST", event: "Valorant Semi-Finals", teamA: "Nexus Prime", teamB: "Shadow Realm" },
+            { time: "20:30 IST", event: "CS:GO Final Showdown", teamA: "Viper Clan", teamB: "Cyber Elite" }
+        ];
+
+        const leaderboard = [
+            { rank: 1, team: "Nexus Prime", wins: 42, points: 1250 },
+            { rank: 2, team: "Cyber Elite", wins: 38, points: 1120 },
+            { rank: 3, team: "Viper Clan", wins: 35, points: 1040 }
+        ];
+
+        // Core Functions
+        function navigateTo(targetView) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+
+            const view = document.getElementById(`view-${targetView}`);
+            if (view) view.classList.add('active');
+
+            const link = document.querySelector(`.nav-link[data-target="${targetView}"]`);
+            if (link) link.classList.add('active');
+
+            // Close mobile menu on navigate
+            document.getElementById('mobile-menu').classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('form-login').classList.remove('hidden');
+                document.getElementById('form-signup').classList.add('hidden');
+                document.getElementById('tab-login').className = 'text-xl font-bold text-white nav-brand pb-2 border-b-2 border-neon-blue';
+                document.getElementById('tab-signup').className = 'text-xl font-bold text-gray-500 nav-brand pb-2 border-b-2 border-transparent hover:text-white';
+            } else {
+                document.getElementById('form-login').classList.add('hidden');
+                document.getElementById('form-signup').classList.remove('hidden');
+                document.getElementById('tab-signup').className = 'text-xl font-bold text-white nav-brand pb-2 border-b-2 border-neon-purple';
+                document.getElementById('tab-login').className = 'text-xl font-bold text-gray-500 nav-brand pb-2 border-b-2 border-transparent hover:text-white';
+            }
+        }
+
+        function handleAuth(event, type) {
+            event.preventDefault();
+            const username = type === 'signup' ? document.getElementById('reg-username').value : 'ProGamer';
+            currentUser = { username };
+            renderAuthUI();
+            showToast(`Welcome back, ${username}!`);
+            navigateTo('home');
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            renderAuthUI();
+            showToast('Logged out successfully');
+            navigateTo('home');
+        }
+
+        function renderAuthUI() {
+            const container = document.getElementById('nav-auth-section');
+            const mobileContainer = document.getElementById('mobile-auth-section');
+
+            if (currentUser) {
+                const content = `
+                    <button onclick="navigateTo('team')" class="text-gray-300 hover:text-white flex items-center gap-1 font-medium">
+                        <i class="ph ph-users text-neon-purple text-xl"></i> Guild
+                    </button>
+                    <span class="text-neon-blue font-bold">${currentUser.username}</span>
+                    <button onclick="handleLogout()" class="px-4 py-2 border border-dark-600 hover:border-neon-pink text-gray-300 hover:text-neon-pink rounded transition-colors text-sm">
+                        LOGOUT
+                    </button>
+                `;
+                container.innerHTML = content;
+                mobileContainer.innerHTML = content;
+            } else {
+                const content = `
+                    <button onclick="navigateTo('auth')" class="px-5 py-2.5 bg-neon-blue hover:bg-cyan-400 text-dark-900 font-bold rounded transition-colors">
+                        LOGIN / REGISTER
+                    </button>
+                `;
+                container.innerHTML = content;
+                mobileContainer.innerHTML = content;
+            }
+        }
+
+        function renderTournaments() {
+            const grid = document.getElementById('tournament-grid');
+            grid.innerHTML = tournaments.map(t => `
+                <div class="glass-panel p-6 rounded-xl border border-dark-600 hover:border-neon-blue transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="px-3 py-1 bg-dark-700 text-neon-blue border border-neon-blue/30 rounded-full text-xs font-bold">${t.game}</span>
+                            <span class="text-gray-400 text-sm">${t.slots} Slots</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-2">${t.name}</h3>
+                        <p class="text-gray-400 text-sm mb-4"><i class="ph ph-calendar"></i> Starts ${t.date}</p>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-gray-400 text-sm">Prize Pool</span>
+                            <span class="text-xl font-bold text-neon-green">${t.prize}</span>
+                        </div>
+                        <button onclick="showToast('Registration complete for ${t.name}!')" class="w-full bg-dark-700 hover:bg-neon-purple hover:text-white text-gray-300 py-2.5 rounded font-bold transition-colors">
+                            JOIN TOURNAMENT
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRoster() {
+            const body = document.getElementById('team-roster-body');
+            body.innerHTML = teamRoster.map((m, index) => `
+                <tr class="hover:bg-dark-700/50 transition-colors">
+                    <td class="py-4 px-6 font-medium text-white flex items-center gap-2">
+                        <i class="ph ph-user-circle text-2xl text-neon-purple"></i> ${m.name}
+                    </td>
+                    <td class="py-4 px-6"><span class="px-2.5 py-1 bg-dark-700 text-gray-300 rounded text-xs font-semibold">${m.role}</span></td>
+                    <td class="py-4 px-6 text-gray-400 text-sm">${m.joined}</td>
+                    <td class="py-4 px-6 text-right">
+                        ${m.role !== 'Captain' ? `<button onclick="removeMember(${index})" class="text-red-400 hover:text-red-300"><i class="ph ph-trash text-xl"></i></button>` : '<span class="text-xs text-gray-500">Leader</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function addTeamMember(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-member-name');
+            const roleInput = document.getElementById('new-member-role');
+
+            teamRoster.push({
+                name: nameInput.value,
+                role: roleInput.value,
+                joined: new Date().toISOString().split('T')[0]
+            });
+
+            nameInput.value = '';
+            renderRoster();
+            showToast('Member added to roster!');
+        }
+
+        function removeMember(index) {
+            teamRoster.splice(index, 1);
+            renderRoster();
+            showToast('Member removed', 'error');
+        }
+
+        function renderSchedule() {
+            const container = document.getElementById('schedule-list');
+            container.innerHTML = schedule.map(s => `
+                <div class="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <span class="text-neon-blue font-bold text-sm sm:w-24">${s.time}</span>
+                    <div class="text-center sm:text-left flex-grow">
+                        <span class="text-xs text-gray-400 uppercase tracking-widest block">${s.event}</span>
+                        <span class="text-white font-bold text-lg">${s.teamA} <span class="text-neon-purple">VS</span> ${s.teamB}</span>
+                    </div>
+                    <button onclick="showToast('Match set for notification')" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-sm rounded font-medium">Remind Me</button>
+                </div>
+            `).join('');
+        }
+
+        function renderLeaderboard() {
+            const body = document.getElementById('leaderboard-body');
+            body.innerHTML = leaderboard.map(l => `
+                <tr class="hover:bg-dark-700/50">
+                    <td class="py-4 px-6 font-bold text-neon-blue">#${l.rank}</td>
+                    <td class="py-4 px-6 font-semibold text-white">${l.team}</td>
+                    <td class="py-4 px-6 text-gray-300">${l.wins}</td>
+                    <td class="py-4 px-6 font-bold text-neon-purple">${l.points} pts</td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAuthUI();
+            renderTournaments();
+            renderRoster();
+            renderSchedule();
+            renderLeaderboard();
+        });
+    </script>
+</body>
+
+</html>
